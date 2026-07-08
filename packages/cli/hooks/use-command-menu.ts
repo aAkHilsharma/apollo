@@ -3,6 +3,7 @@ import { useMemo, useRef, useState, type RefObject } from "react";
 import type { Command } from "../src/components/command-menu/types";
 import { getFilteredCommands } from "../src/components/command-menu/filter-command";
 import { useKeyboard } from "@opentui/react";
+import { useKeyboardLayer } from "../src/providers/keyboard-layer";
 
 type UseCommandMenuReturn = {
   showCommandMenu: boolean;
@@ -19,6 +20,7 @@ export function UseCommandMenu(): UseCommandMenuReturn {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showCommandMenu, setShowCommandMenu] = useState(false);
   const scrollref = useRef<ScrollBoxRenderable>(null);
+  const { push, pop, isTopLayer } = useKeyboardLayer()
 
   const commandQuery =
     showCommandMenu && textValue.startsWith("/") ? textValue.slice(1) : "";
@@ -39,8 +41,14 @@ export function UseCommandMenu(): UseCommandMenuReturn {
     const prefix = text.startsWith("/") ? text.slice(1) : null;
     if (prefix !== null && !prefix.includes(" ")) {
       setShowCommandMenu(true);
+      push("command", () => {
+        setShowCommandMenu(false);
+        pop("command");
+        return true;
+      })
     } else {
       setShowCommandMenu(false);
+      pop("command");
     }
   };
 
