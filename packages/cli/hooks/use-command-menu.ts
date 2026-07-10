@@ -29,6 +29,11 @@ export function UseCommandMenu(): UseCommandMenuReturn {
     return getFilteredCommands(commandQuery);
   }, [commandQuery]);
 
+  const close = () => {
+    setShowCommandMenu(false);
+    pop("command");
+  };
+
   const handleContentChange = (text: string) => {
     setTextValue(text);
     setSelectedIndex(0);
@@ -42,30 +47,28 @@ export function UseCommandMenu(): UseCommandMenuReturn {
     if (prefix !== null && !prefix.includes(" ")) {
       setShowCommandMenu(true);
       push("command", () => {
-        setShowCommandMenu(false);
-        pop("command");
+        close();
         return true;
       })
     } else {
-      setShowCommandMenu(false);
-      pop("command");
+      close();
     }
   };
 
   const resolveCommand = (index: number): Command | undefined => {
     const command = filteredCommands[index];
     if (command) {
-      setShowCommandMenu(false);
+      close();
     }
     return command;
   };
 
   useKeyboard((key) => {
-    if (!showCommandMenu) return;
+    if (!showCommandMenu || !isTopLayer("command")) return;
 
     if (key.name === "escape") {
       key.preventDefault();
-      setShowCommandMenu(false);
+      close();
     } else if (key.name === "up") {
       setSelectedIndex((i: number) => {
         key.preventDefault();
