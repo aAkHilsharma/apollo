@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { ErrorMessage } from "../components/messages";
 
 export function NewSession() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export function NewSession() {
     <box flexGrow={1} padding={2} flexDirection="column" gap={1}>
       <text>Creating session...</text>
       <text>{state.message}</text>
+      <ErrorMessage message={state.message} />
     </box>
   );
 }
