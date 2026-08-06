@@ -1,5 +1,4 @@
 import { colors } from "../../theme";
-import { EmptyBorder } from "../border";
 
 type Props = {
   content: string;
