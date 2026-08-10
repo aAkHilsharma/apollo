@@ -1,0 +1,21 @@
+{
+  "name": "@apollo/database",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/enum.ts",
+    "./enums": "./src/enums.ts"
+  },
+  "scripts": {
+    "db:generate": "bunx prisma generate"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "prisma": "^7.9.1"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "dotenv": "^17.4.2"
+  }
+}
