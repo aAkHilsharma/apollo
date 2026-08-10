@@ -21,6 +21,7 @@ app.onError((error, c) => {
 });
 
 const routes = app.route("/sessions", sessions);
+export type AppType = typeof routes;
 
 // idleTimeout must be high, otherwise LLM tool calls might not complete
 export default { port: 3000, fetch: app.fetch, idleTimeout: 255 };
