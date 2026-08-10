@@ -77,7 +77,7 @@ const app = new Hono()
   })
   .post("/", createSessionValidator, async (c) => {
     // Mock: Uncomment to simulate slow session loading
-    // await new Promise((r) => setTimeout(r, 5000))
+    // await new Promise((r) => setTimeout(r, 5000));
     // Mock: Uncomment to simulate session loading error
     // throw new HTTPException(500, { message: "Mock error: session loading failed"})
 
