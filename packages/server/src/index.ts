@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 
-import sessions from "./routes/session";
+import sessions from "./routes/sessions";
 
 const app = new Hono();
 app.get("/", (c) => c.text("Hello Bun!"));

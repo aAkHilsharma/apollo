@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "exports": {
-    ".": "./src/enum.ts",
+    ".": "./src/index.ts",
     "./enums": "./src/enums.ts"
   },
   "scripts": {
