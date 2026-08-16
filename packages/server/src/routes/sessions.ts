@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { db } from "@apollo/database";
+import { db } from "@apollo/database/client";
 import { findSupportedChatModel } from "@apollo/shared";
 import { Role, Mode, MessageStatus } from "@apollo/database/enums";
 
