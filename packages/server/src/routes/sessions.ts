@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { logger } from "@sentry/hono/bun";
 import { db } from "@apollo/database/client";
 import { findSupportedChatModel } from "@apollo/shared";
 import { Role, Mode, MessageStatus } from "@apollo/database/enums";
@@ -25,6 +26,10 @@ const createSessionValidator = zValidator(
   createSessionSchema,
   (result, c) => {
     if (!result.success) {
+      logger.warn("Session creation validation failed", {
+        path: c.req.path,
+        issues: result.error.issues.length,
+      });
       return c.json({ error: "Invalid request body" }, 400);
     }
   },
@@ -40,6 +45,11 @@ const app = new Hono()
         createdAt: true,
       },
     });
+
+    logger.info("Listed sessions", {
+      count: sessions.length,
+    });
+
     return c.json(sessions);
   })
   .get("/:id", async (c) => {
@@ -56,7 +66,16 @@ const app = new Hono()
       },
     });
 
-    if (!session) return c.json({ error: "Session not found" }, 404);
+    if (!session) {
+      logger.warn("Session not found", {
+        sessionId: id,
+      });
+      return c.json({ error: "Session not found" }, 404);
+    }
+
+    logger.info("Session loaded", {
+      sessionId: id,
+    });
 
     return c.json(session);
   })
@@ -82,6 +101,11 @@ const app = new Hono()
         }),
       },
       include: { messages: true },
+    });
+
+    logger.info("Created session", {
+      sessionId: session.id,
+      title: session.title,
     });
 
     return c.json(session, 201);
