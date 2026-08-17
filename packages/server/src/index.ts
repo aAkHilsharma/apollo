@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import path from "path";
 
 import sessions from "./routes/sessions";
+import chat from "./routes/chat";
 
 dotenv.config({
   path: path.resolve(import.meta.dirname, "../../../.env"),
@@ -39,7 +40,7 @@ app.onError((error, c) => {
   return c.json({ error: "Internal server error" }, 500);
 });
 
-const routes = app.route("/sessions", sessions);
+const routes = app.route("/sessions", sessions).route("/chat", chat);
 export type AppType = typeof routes;
 
 // idleTimeout must be high, otherwise LLM tool calls might not complete
