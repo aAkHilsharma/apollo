@@ -6,8 +6,9 @@ import {
   chatStreamEventSchema,
   type SupportedChatModelId,
 } from "@apollo/shared";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getErrorMessage } from "../lib/http-errors";
+import { apiClient } from "../lib/api-client";
 
 export type ClientMessagePart = { type: "text"; text: string };
 
@@ -27,6 +28,7 @@ export type Message =
       model: SupportedChatModelId;
       parts: ClientMessagePart[];
       duration?: string;
+      interrupted?: boolean;
     }
   | { id: string; role: "error"; content: string };
 
@@ -45,6 +47,7 @@ type ActiveStream = {
   mode: Mode;
   model: SupportedChatModelId;
   parts: ClientMessagePart[];
+  interruptedCaptured: boolean;
 };
 
 type SubmitParams = {
@@ -93,6 +96,34 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
       });
     },
     [isActiveRequest],
+  );
+
+  const captureInterruptedMessage = useCallback(
+    (activeStream: ActiveStream) => {
+      if (activeStream.interruptedCaptured || activeStream.parts.length === 0)
+        return;
+
+      activeStream.interruptedCaptured = true;
+      const parts = [...activeStream.parts];
+      const fullText = parts
+        .filter((p) => p.type === "text")
+        .map((p) => p.text)
+        .join("");
+
+      updateMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: fullText,
+          model: activeStream.model,
+          mode: activeStream.mode,
+          parts,
+          interrupted: true,
+        },
+      ]);
+    },
+    [],
   );
 
   const clearStream = useCallback(
@@ -206,6 +237,7 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
         mode,
         model,
         parts: [],
+        interruptedCaptured: false,
       };
 
       activeStreamRef.current = activeStream;
@@ -234,8 +266,85 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
     [clearStream, handleStream, isActiveRequest, updateMessages],
   );
 
-  const resume = useCallback(
-    async ({ mode, model }: Omit<SubmitParams, "userText">) => {},
-    [],
+  const stopActiveStream = useCallback(
+    (capturePartial: boolean) => {
+      const activeStream = activeStreamRef.current;
+      if (!activeStream) return;
+
+      if (capturePartial) {
+        captureInterruptedMessage(activeStream);
+      }
+
+      activeStreamRef.current = null;
+      setStreaming({ status: "idle" });
+      activeStream.controller.abort();
+    },
+    [captureInterruptedMessage],
   );
+
+  const resume = useCallback(
+    async ({ mode, model }: Omit<SubmitParams, "userText">) => {
+      await runStream({
+        mode,
+        model,
+        request: async (controller) => {
+          return apiClient.chat[":sessionId"].resume.$post(
+            { param: { sessionId } },
+            { init: { signal: controller.signal } },
+          );
+        },
+      });
+    },
+    [runStream, sessionId],
+  );
+
+  const hasAutoResumeRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoResumeRef.current) return;
+    const last = initialMessages[initialMessages.length - 1];
+    if (!last || last.role !== "user") return;
+
+    hasAutoResumeRef.current = true;
+    void resume({ mode: last.mode, model: last.model });
+  }, [initialMessages, resume]);
+
+  const submit = useCallback(
+    async ({ userText, mode, model }: SubmitParams) => {
+      stopActiveStream(true);
+
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: userText,
+        mode,
+        model,
+      };
+      updateMessages((prev) => [...prev, userMessage]);
+
+      await runStream({
+        mode,
+        model,
+        request: async (controller) => {
+          return apiClient.chat[":sessionId"].$post(
+            {
+              param: { sessionId },
+              json: { content: userText, mode, model },
+            },
+            { init: { signal: controller.signal } },
+          );
+        },
+      });
+    },
+    [runStream, sessionId, updateMessages, stopActiveStream],
+  );
+
+  const abort = useCallback(() => {
+    stopActiveStream(false);
+  }, [stopActiveStream]);
+
+  const interrupt = useCallback(() => {
+    stopActiveStream(true);
+  }, [stopActiveStream]);
+
+  return { messages, streaming, submit, abort, interrupt };
 }

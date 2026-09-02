@@ -59,7 +59,7 @@ const app = new Hono()
     // throw new HTTPException(500, { message: "Mock error: session loading failed"})
 
     const id = c.req.param("id");
-    const session = db.session.findUnique({
+    const session = await db.session.findUnique({
       where: { id },
       include: {
         messages: { orderBy: { createdAt: "desc" } },
